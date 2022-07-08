@@ -1,0 +1,148 @@
+Date : 11 May 2022 
+
+Name :- Shamal Bherde
+
+1. What happens when you try to send 2 transactions (exactly the same) to 2 different nodes in blockchain network at the same time?
+Answer =>
+ Both transactions will go to pool as unconfirmed transactions. The one that will get approved, will get confirmed first into the block. This will be done via the consensus mechanism of the blockchain.
+The second transaction will get verified and confirmed later. Whichever transaction gets highest number of confirmations, that will be added into the blockchain, the rest will be discarded / ignored.
+
+
+2. What happens if you try to send 2 transactions that have the same input data but different gas price to 2 different nodes in ethereum network?
+Answer =>
+ The one with the higher gas price has higher chance of getting verified/approved and put into the blockchain by the miner. Higher gas means higher reward for the miner.
+
+3. What is nonce number does in blockchain network and ethereum network?
+Answer =>
+ A nonce is an abbreviation for "number only used once". Since every transaction on Ethereum has a nonce, a same transaction cannot be sent multiple twice with same nonce value. If the nonce is set to the same only one of the transactions will be mined. 
+
+4. Are there any way to override a information of block in blockchain?
+Answer =>
+
+  No, they cannot override or change old data. But if an attacker controls over 51% of the nodes of a blockchain,
+ then can decide to approve incorrect data / harmful data to get confirmed on the blockchain that benefits 
+ the attacker.
+
+5) Write a service that listens to dapp, and alert the console when there is any change in voting result.
+Answer =>
+
+    1. Load web3
+    Firstly, we need to connect MetaMask to our DApp by loading web3 in the browser.
+
+    const Web3 = require("web3");
+
+    window.web3 = new Web3(window.ethereum);
+    window.ethereum.enable();
+
+    2. Load the Smart Contract
+    Next, we need to load the smart contract, which emits the event we want to subscribe to. For this example, we have a smart contract called MyContract, which emits an event called MyEvent.
+
+    import MyContract from "./contracts/MyContract.json";
+    const networkId = await web3.eth.net.getId();
+    const deployedNetwork = MyContract.networks[networkId];
+    const myContract = new web3.eth.Contract(
+        MyContract.abi,
+        deployedNetwork && deployedNetwork.address,
+    );
+
+    3. Subscribe
+    Using the instance we created in step 2, we can subscribe to listen out for any events that it emits.
+
+    myContract.events.MyEvent({})
+    .on('data', async function(event){
+        console.log(event.returnValues);
+        // Do something here
+    })
+    .on('error', console.error);
+
+6) Provide script to deploy contracts on testnet (ropsten or rinkeby)
+Answer =>
+OnlocalNode:-
+    1. First write the solidity code save it by .sol test it on remix.
+    2. Then do truffle init, it will generate the code generate for us
+    3. Open the Ganache GUI client. This will start your local blockchain instance.
+    4. Then Compile & Deploy Election Smart Contract.
+    5. $ truffle migrate --reset You must migrate the election smart contract each time your restart ganache.
+
+     Below code is for deploying contract
+    
+        var Election = artifacts.require("./Election.sol");
+        module.exports = function(deployer) {
+        deployer.deploy(Election);
+        };
+
+    Below code is for testing the smart contract
+
+        var Election = artifacts.require("./Election.sol");
+
+        contract("Election", function(accounts) {
+        var electionInstance;
+
+        it("initializes with two candidates", function() {
+            return Election.deployed().then(function(instance) {
+            return instance.candidatesCount();
+            }).then(function(count) {
+            assert.equal(count, 2);
+            });
+        });
+
+          it("it initializes the candidates with the correct values", function() {
+            return Election.deployed().then(function(instance) {
+            electionInstance = instance;
+            return electionInstance.candidates(1);
+            }).then(function(candidate) {
+            assert.equal(candidate[0], 1, "contains the correct id");
+            assert.equal(candidate[1], "Candidate 1", "contains the correct name");
+            assert.equal(candidate[2], 0, "contains the correct votes count");
+            return electionInstance.candidates(2);
+            }).then(function(candidate) {
+            assert.equal(candidate[0], 2, "contains the correct id");
+            assert.equal(candidate[1], "Candidate 2", "contains the correct name");
+            assert.equal(candidate[2], 0, "contains the correct votes count");
+            });
+        });
+
+         it("allows a voter to cast a vote", function() {
+            return Election.deployed().then(function(instance) {
+            electionInstance = instance;
+            candidateId = 1;
+            return electionInstance.vote(candidateId, { from: accounts[0] });
+            }).then(function(receipt) {
+            assert.equal(receipt.logs.length, 1, "an event was triggered");
+            assert.equal(receipt.logs[0].event, "votedEvent", "the event type is correct");
+            assert.equal(receipt.logs[0].args._candidateId.toNumber(), candidateId, "the candidate id is correct");
+            return electionInstance.voters(accounts[0]);
+            }).then(function(voted) {
+            assert(voted, "the voter was marked as voted");
+            return electionInstance.candidates(candidateId);
+            }).then(function(candidate) {
+            var voteCount = candidate[2];
+            assert.equal(voteCount, 1, "increments the candidate's vote count");
+            })
+        });
+
+
+    }
+
+
+ON Ropsten :- 
+
+ 1. First write the solidity code save it by .sol test it on remix.
+ 2. Deploy it on Ropsten. then use ITS ABI.json file and deployer address
+    
+    const Ballot = artifacts.require("./Election.sol");
+
+    module.exports = function (deployer, network, addresses) {
+    if(network === 'ropsten') {
+        deployer.deploy(Ballot);
+        const tokenBsc = await Ballot.deployed();
+        console.log(tokenBsc);
+    }
+
+    };
+
+
+Add network .in env file
+
+ETH_CLIENT_URL = "https://ropsten.infura.io/v3/e08526e5952c4466b2725cadc7bcb9fa"
+mnemonic = "blush install ethics excite either risk cupboard venue north tent empower hold"
